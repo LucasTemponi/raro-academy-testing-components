@@ -1,5 +1,5 @@
 import axios from "axios";
-import { FormEvent, useCallback, useMemo } from "react";
+import { FormEvent, useCallback, useMemo, useState } from "react";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { campoObrigatorio } from "../../helpers/validators/campoObrigatorio";
@@ -12,6 +12,7 @@ export const Cadastro = () => {
   const email = useValidatedField(emailValido('E-mail'));
   const codigoAcesso = useValidatedField(campoObrigatorio('Codigo Acesso'));
   const senha = useValidatedField(senhaValida('Senha'));
+  const [erro,setErro] = useState('');
   const validaConfirmacaoSenha = useCallback((value: string) => {
     if (value !== senha.value) {
       return ['Senhas não conferem'];
@@ -39,11 +40,14 @@ export const Cadastro = () => {
       senha: senha.value,
       codigoAcesso: codigoAcesso.value
     };
-
-    await axios.post(
-      'https://3.221.159.196:3320/auth/cadastrar',
-      usuario
-    );
+    try{
+      await axios.post(
+        'https://3.221.159.196:3320/auth/cadastrar',
+        usuario
+      );
+    } catch (error: any) {
+      setErro(error.message);
+    }
   }
 
   return (
@@ -105,6 +109,7 @@ export const Cadastro = () => {
             <Button type="submit" disabled={!formValido}>
               Cadastrar
             </Button>
+            {erro ? <p>{erro}</p> : null}
           </form>
         </div>
       </div>

@@ -4,6 +4,8 @@ import { render, screen } from '@testing-library/react'
 import faker from '@faker-js/faker';
 import { validaErroApresentadoEmTela } from '../../helpers/teste/validaErroApresentadoEmTela';
 import { validaErroNaoApresentadoEmTela } from '../../helpers/teste/validaErroNaoApresentadoEmTela';
+import { validaConfirmacaoErroEmTela } from '../../helpers/teste/validaConfirmacaoErroEmTela';
+import { validaConfirmacaoNaoEmTela } from '../../helpers/teste/validaConfirmacaoNaoEmTela';
 import { setValorInput } from '../../helpers/teste/setValorInput';
 import axios from 'axios';
 
@@ -25,7 +27,14 @@ describe('Cadastro Page', () => {
   });
 
   it('deve validar o formato de e-mail no cadastro', () => {
-
+    const input = screen.getByPlaceholderText('e-mail')
+    const emailSemPonto = 'teste@asfvcom'
+    const emailSemArroba = 'testeasfv.com'
+    const emailCorreto = faker.internet.email();
+    const mensagemDeValidacao = 'Formato de e-mail inválido';
+    validaErroApresentadoEmTela(input,emailSemPonto, mensagemDeValidacao);
+    validaErroApresentadoEmTela(input,emailSemArroba, mensagemDeValidacao);
+    validaErroNaoApresentadoEmTela(input, emailCorreto, mensagemDeValidacao);
   });
 
   describe('deve validar os critérios de aceitação da senha', () => {
@@ -37,43 +46,78 @@ describe('Cadastro Page', () => {
     it('senha deve ter 8 dígitos ou mais', () => {
       const value = faker.lorem.paragraph();
       const mensagemDeValidacao = 'Senha deve ter ao menos 8 caracteres';
-      validaErroApresentadoEmTela(input, mensagemDeValidacao);
+      validaErroApresentadoEmTela(input,'', mensagemDeValidacao);
       validaErroNaoApresentadoEmTela(input, value, mensagemDeValidacao);
     });
 
     it('senha deve ter letra maiuscula', () => {
       const value = 'Teste';
       const mensagemDeValidacao = 'Senha deve conter pelo menos uma letra maiúscula';
-      validaErroApresentadoEmTela(input, mensagemDeValidacao);
+      validaErroApresentadoEmTela(input,'', mensagemDeValidacao);
       validaErroNaoApresentadoEmTela(input, value, mensagemDeValidacao);
     });
 
     it('senha deve ter letra minúscula', () => {
       const value = 'Teste';
       const mensagemDeValidacao = 'Senha deve conter pelo menos uma letra minúscula';
-      validaErroApresentadoEmTela(input, mensagemDeValidacao);
+      validaErroApresentadoEmTela(input,'', mensagemDeValidacao);
       validaErroNaoApresentadoEmTela(input, value, mensagemDeValidacao);
     });
 
     it('senha deve ter números', () => {
       const value = 'Teste 1';
       const mensagemDeValidacao = 'Senha deve conter pelo menos um número';
-      validaErroApresentadoEmTela(input, mensagemDeValidacao);
+      validaErroApresentadoEmTela(input, '',mensagemDeValidacao);
       validaErroNaoApresentadoEmTela(input, value, mensagemDeValidacao);
     });
 
     it('senha deve ter caracteres especiais', () => {
       const value = 'Teste@1';
       const mensagemDeValidacao = 'Senha deve conter pelo menos um caractere especial';
-      validaErroApresentadoEmTela(input, mensagemDeValidacao);
+      validaErroApresentadoEmTela(input,'', mensagemDeValidacao);
       validaErroNaoApresentadoEmTela(input, value, mensagemDeValidacao);
     });
   });
 
-  it('deve garantir que senha e confirmação sejam iguais', () => {});
+  it('deve garantir que senha e confirmação sejam iguais', () => {
+    const senha = screen.getByPlaceholderText('Senha');
+    const confirmacaoSenha = screen.getByPlaceholderText('Confirmação de Senha');
+    const mensagemDeValidacao = 'Senhas não conferem';
+    const value = 'Teste@1';
+    validaConfirmacaoErroEmTela(senha,value, confirmacaoSenha, mensagemDeValidacao);
+    validaConfirmacaoNaoEmTela(senha, value, confirmacaoSenha, mensagemDeValidacao);
+
+  });
 
   it('deve enviar o formulário se todos os dados estiverem preenchidos corretamente', () => {
-
+        // setup
+        jest.spyOn(axios, 'post').mockResolvedValue('ok');
+        const nome = screen.getByPlaceholderText('Nome');
+        const email = screen.getByPlaceholderText('e-mail');
+        const senha = screen.getByPlaceholderText('Senha');
+        const confirmacaoSenha = screen.getByPlaceholderText('Confirmação de Senha');
+        const codigoAcesso = screen.getByPlaceholderText('Código de Acesso');
+        const botao = screen.getByText('Cadastrar');
+        const dados = {
+          nome: faker.name.firstName(),
+          email: faker.internet.email(),
+          senha: 'S3nh@!123',
+          codigoAcesso: faker.lorem.paragraph(),
+        };
+    
+        // construcao
+        setValorInput(nome, dados.nome);
+        setValorInput(email, dados.email);
+        setValorInput(senha, dados.senha);
+        setValorInput(confirmacaoSenha, dados.senha);
+        setValorInput(codigoAcesso, dados.codigoAcesso);
+        botao.click();
+    
+        // asserts
+        expect(axios.post).toHaveBeenCalledWith(
+          expect.stringContaining('/auth/cadastrar'),
+          dados
+        );
   });
 
   it('deve notificar o usuário que o cadastro foi efetuado com sucesso', () => {
@@ -107,5 +151,37 @@ describe('Cadastro Page', () => {
     );
   });
 
-  it('deve apresentar os erros de validação para o usuário, caso a API retorne erro', () => {});
+  it('deve apresentar os erros de validação para o usuário, caso a API retorne erro', async () => {
+      // setup
+    // const response = {};
+    jest.spyOn(axios, 'post').mockRejectedValue(new Error("Erro na requisição"));
+    const nome = screen.getByPlaceholderText('Nome');
+    const email = screen.getByPlaceholderText('e-mail');
+    const senha = screen.getByPlaceholderText('Senha');
+    const confirmacaoSenha = screen.getByPlaceholderText('Confirmação de Senha');
+    const codigoAcesso = screen.getByPlaceholderText('Código de Acesso');
+    const botao = screen.getByText('Cadastrar');
+    const dados = {
+      nome: faker.name.firstName(),
+      email: faker.internet.email(),
+      senha: 'S3nh@!123',
+      codigoAcesso: faker.lorem.paragraph(),  
+    };
+
+    // construcao
+    setValorInput(nome, dados.nome);
+    setValorInput(email, dados.email);
+    setValorInput(senha, dados.senha);
+    setValorInput(confirmacaoSenha, dados.senha);
+    setValorInput(codigoAcesso, dados.codigoAcesso);
+    botao.click();
+
+    // asserts
+    // expect(axios.post).toHaveBeenCalledWith(
+    //   expect.stringContaining('/auth/cadastrar'),
+    //   dados
+    // );
+
+    expect(await screen.findByText("Erro na requisição")).toBeInTheDocument();
+  });
 });
